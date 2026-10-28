@@ -1,13 +1,16 @@
 """
-Milvus Indexing Script for Datasets (Zalo Legal / NQ-VN)
-Indexes text embeddings into Milvus (Milvus Lite or Milvus Standalone)
+Milvus Multi-Dataset Indexing Script
+Indexes text embeddings for:
+  1. Zalo AI Legal (GreenNode/zalo-ai-legal-text-retrieval-vn)
+  2. NQ-VN (GreenNode/nq-vn)
+into Milvus Vector Database (Milvus Lite or Milvus Standalone)
 """
 
 import argparse
 import sys
 import os
 import time
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 
 from datasets import load_dataset
 from pymilvus import MilvusClient, DataType
@@ -15,23 +18,52 @@ from sentence_transformers import SentenceTransformer
 from tqdm import tqdm
 
 DEFAULT_MODEL = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
-DEFAULT_DB_PATH = "milvus_legal.db"
+DEFAULT_DB_PATH = "milvus_data.db"
+
+DATASETS_CONFIG = {
+    "zalo": {
+        "hf_name": "GreenNode/zalo-ai-legal-text-retrieval-vn",
+        "collection_name": "zalo_legal",
+        "description": "Zalo AI Legal Text Retrieval (Pháp luật Việt Nam)",
+        "fields": ["id", "title", "text"],
+        "default_limit": 5000,
+    },
+    "nq": {
+        "hf_name": "GreenNode/nq-vn",
+        "collection_name": "nq_vn",
+        "description": "Natural Questions VN (Tri thức bách khoa mở)",
+        "fields": ["id", "title", "text", "og_title", "og_text"],
+        "default_limit": 5000,
+    },
+}
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Index dataset into Milvus")
+    parser = argparse.ArgumentParser(description="Index datasets into Milvus")
     parser.add_argument(
         "--dataset",
         type=str,
-        default="zalo",
-        choices=["zalo", "nq"],
-        help="Dataset to index: 'zalo' (Zalo AI Legal) or 'nq' (Natural Questions VN)",
+        default="both",
+        choices=["zalo", "nq", "both"],
+        help="Dataset to index: 'zalo', 'nq', or 'both' (default: both)",
     )
     parser.add_argument(
         "--limit",
         type=int,
         default=None,
-        help="Limit number of documents to index (e.g., 5000). None = index all.",
+        help="Global limit for number of documents per dataset (overrides per-dataset limit). None = index all or use defaults.",
+    )
+    parser.add_argument(
+        "--limit-zalo",
+        type=int,
+        default=None,
+        help="Limit number of documents for Zalo Legal dataset (e.g., 5000 or 61425 for all)",
+    )
+    parser.add_argument(
+        "--limit-nq",
+        type=int,
+        default=5000,
+        help="Limit number of documents for NQ-VN dataset (default: 5000)",
     )
     parser.add_argument(
         "--batch-size",
@@ -44,12 +76,6 @@ def parse_args():
         type=str,
         default=DEFAULT_DB_PATH,
         help=f"Milvus Lite db file path or Milvus Server URI (default: {DEFAULT_DB_PATH})",
-    )
-    parser.add_argument(
-        "--collection-name",
-        type=str,
-        default=None,
-        help="Collection name in Milvus. Default is 'zalo_legal' or 'nq_vn'",
     )
     parser.add_argument(
         "--model-name",
@@ -65,19 +91,10 @@ def parse_args():
     return parser.parse_args()
 
 
-def get_dataset_info(dataset_choice: str):
-    if dataset_choice == "zalo":
-        dataset_name = "GreenNode/zalo-ai-legal-text-retrieval-vn"
-        default_collection = "zalo_legal"
-    else:
-        dataset_name = "GreenNode/nq-vn"
-        default_collection = "nq_vn"
-    return dataset_name, default_collection
-
-
-def init_milvus_collection(
+def create_collection_for_dataset(
     client: MilvusClient,
     collection_name: str,
+    dataset_key: str,
     dimension: int,
     recreate: bool = False,
 ):
@@ -86,16 +103,25 @@ def init_milvus_collection(
             print(f"[*] Đang xóa collection cũ '{collection_name}'...")
             client.drop_collection(collection_name)
         else:
-            print(f"[+] Collection '{collection_name}' đã tồn tại.")
-            return
+            stats = client.get_collection_stats(collection_name)
+            row_count = stats.get("row_count", 0)
+            if row_count > 0:
+                print(f"[+] Collection '{collection_name}' đã có sẵn {row_count:,} bản ghi. (Dùng --recreate nếu muốn nạp lại từ đầu).")
+                return False
+            else:
+                print(f"[+] Collection '{collection_name}' đã tồn tại (chưa có bản ghi). Tiếp tục nạp dữ liệu...")
+                return True
 
-    print(f"[*] Đang tạo collection '{collection_name}' (dimension={dimension}, metric=COSINE)...")
-    
+    print(f"[*] Đang tạo collection '{collection_name}' (dim={dimension}, metric=COSINE)...")
     schema = client.create_schema(auto_id=False, enable_dynamic_field=True)
     schema.add_field(field_name="id", datatype=DataType.VARCHAR, max_length=128, is_primary=True)
     schema.add_field(field_name="vector", datatype=DataType.FLOAT_VECTOR, dim=dimension)
     schema.add_field(field_name="title", datatype=DataType.VARCHAR, max_length=2048)
     schema.add_field(field_name="text", datatype=DataType.VARCHAR, max_length=65535)
+
+    if dataset_key == "nq":
+        schema.add_field(field_name="og_title", datatype=DataType.VARCHAR, max_length=2048)
+        schema.add_field(field_name="og_text", datatype=DataType.VARCHAR, max_length=65535)
 
     index_params = client.prepare_index_params()
     index_params.add_index(
@@ -109,79 +135,75 @@ def init_milvus_collection(
         schema=schema,
         index_params=index_params
     )
-    print(f"[+] Tạo collection '{collection_name}' thành công!")
+    print(f"[+] Đã tạo collection '{collection_name}' thành công!")
+    return True
 
 
-def main():
-    if hasattr(sys.stdout, "reconfigure"):
-        sys.stdout.reconfigure(encoding="utf-8")
-
-    args = parse_args()
-    dataset_name, default_collection = get_dataset_info(args.dataset)
-    collection_name = args.collection_name or default_collection
-
-    print("=" * 60)
-    print(f"  MILVUS DATA INDEXING")
-    print(f"  Dataset:    {dataset_name}")
-    print(f"  Collection: {collection_name}")
-    print(f"  DB Path:    {args.db_path}")
-    print(f"  Model:      {args.model_name}")
-    print(f"  Batch size: {args.batch_size}")
-    if args.limit:
-        print(f"  Limit:      {args.limit} docs")
-    else:
-        print(f"  Limit:      Tất cả dữ liệu")
-    print("=" * 60)
-
-    # 1. Tải mô hình embedding
-    print(f"[*] Đang tải mô hình embedding: {args.model_name}...")
-    model = SentenceTransformer(args.model_name)
+def index_single_dataset(
+    client: MilvusClient,
+    model: SentenceTransformer,
+    dataset_key: str,
+    limit: Optional[int],
+    batch_size: int,
+    recreate: bool = False,
+):
+    config = DATASETS_CONFIG[dataset_key]
+    hf_name = config["hf_name"]
+    collection_name = config["collection_name"]
+    desc = config["description"]
     dimension = model.get_sentence_embedding_dimension()
-    print(f"[+] Mô hình sẵn sàng! Kích thước vector: {dimension}")
 
-    # 2. Khởi tạo Milvus Client
-    print(f"[*] Kết nối Milvus tại: {args.db_path}...")
-    client = MilvusClient(uri=args.db_path)
-    init_milvus_collection(client, collection_name, dimension, recreate=args.recreate)
+    print("\n" + "=" * 65)
+    print(f"  BẮT ĐẦU NẠP DỮ LIỆU: {desc.upper()}")
+    print(f"  • Hugging Face Hub: {hf_name}")
+    print(f"  • Collection Milvus: {collection_name}")
+    print("=" * 65)
 
-    # 3. Tải corpus từ HuggingFace cache
-    print(f"[*] Đang nạp dữ liệu corpus từ '{dataset_name}'...")
-    raw_dataset = load_dataset(dataset_name, "corpus")
-    # lấy split test (hoặc train nếu có)
-    split_name = "test" if "test" in raw_dataset else list(raw_dataset.keys())[0]
-    corpus = raw_dataset[split_name]
+    should_index = create_collection_for_dataset(
+        client, collection_name, dataset_key, dimension, recreate=recreate
+    )
+    if not should_index:
+        return
+
+    # Tải dữ liệu từ cache Hugging Face
+    print(f"[*] Đang đọc corpus từ '{hf_name}'...")
+    raw_ds = load_dataset(hf_name, "corpus")
+    split_name = "test" if "test" in raw_ds else list(raw_ds.keys())[0]
+    corpus = raw_ds[split_name]
     total_docs = len(corpus)
-    print(f"[+] Tổng số tài liệu trong corpus: {total_docs:,}")
+    print(f"[+] Tổng số tài liệu trong tập dữ liệu gốc: {total_docs:,}")
 
-    if args.limit and args.limit < total_docs:
-        docs_to_index = args.limit
+    if limit and limit < total_docs:
+        docs_to_index = limit
         corpus_subset = corpus.select(range(docs_to_index))
     else:
         docs_to_index = total_docs
         corpus_subset = corpus
 
-    print(f"[*] Bắt đầu tạo embedding và nạp {docs_to_index:,} tài liệu vào Milvus...")
-    batch_size = args.batch_size
+    print(f"[*] Đang xử lý embedding và nạp {docs_to_index:,} tài liệu vào '{collection_name}'...")
     start_time = time.time()
 
-    # Xử lý theo từng batch
-    total_batches = (docs_to_index + batch_size - 1) // batch_size
-    with tqdm(total=docs_to_index, desc="Indexing", unit="doc") as pbar:
+    with tqdm(total=docs_to_index, desc=f"Indexing {collection_name}", unit="doc") as pbar:
         for i in range(0, docs_to_index, batch_size):
-            batch_slice = corpus_subset[i : i + batch_size]
-            ids = [str(x) for x in batch_slice["id"]]
-            titles = [str(x or "") for x in batch_slice["title"]]
-            texts = [str(x or "") for x in batch_slice["text"]]
+            batch = corpus_subset[i : i + batch_size]
+            ids = [str(x) for x in batch["id"]]
+            titles = [str(x or "") for x in batch["title"]]
+            texts = [str(x or "") for x in batch["text"]]
 
-            # Chuẩn bị nội dung để encode: kết hợp title + text để semantic search tốt hơn
+            if dataset_key == "nq":
+                og_titles = [str(x or "") for x in batch.get("og_title", [""] * len(ids))]
+                og_texts = [str(x or "") for x in batch.get("og_text", [""] * len(ids))]
+
+            # Chuẩn bị input text để tính embedding (kết hợp title + text)
             input_texts = []
             for t, c in zip(titles, texts):
-                if t and t.strip():
-                    input_texts.append(f"{t.strip()}. {c.strip()[:1000]}")
+                t_str = t.strip()
+                c_str = c.strip()[:1000]
+                if t_str:
+                    input_texts.append(f"{t_str}. {c_str}")
                 else:
-                    input_texts.append(c.strip()[:1000])
+                    input_texts.append(c_str)
 
-            # Tính vector embedding
             embeddings = model.encode(
                 input_texts,
                 batch_size=batch_size,
@@ -189,40 +211,83 @@ def main():
                 normalize_embeddings=True,
             )
 
-            # Tạo danh sách entities nạp vào Milvus
             entities = []
-            for doc_id, title, text, emb in zip(ids, titles, texts, embeddings):
-                # Cắt ngắn title và text nếu vượt quá max_length của VARCHAR
-                safe_title = title[:2000]
-                safe_text = text[:65000]
-                entities.append({
-                    "id": doc_id,
-                    "vector": emb.tolist(),
-                    "title": safe_title,
-                    "text": safe_text,
-                })
+            for idx in range(len(ids)):
+                entity = {
+                    "id": ids[idx],
+                    "vector": embeddings[idx].tolist(),
+                    "title": titles[idx][:2000],
+                    "text": texts[idx][:65000],
+                }
+                if dataset_key == "nq":
+                    entity["og_title"] = og_titles[idx][:2000]
+                    entity["og_text"] = og_texts[idx][:65000]
+                entities.append(entity)
 
             client.insert(collection_name=collection_name, data=entities)
             pbar.update(len(entities))
 
     elapsed = time.time() - start_time
     rate = docs_to_index / elapsed if elapsed > 0 else 0
+    print(f"[✓] Hoàn thành nạp '{collection_name}': {docs_to_index:,} docs trong {elapsed:.2f}s ({rate:.1f} docs/s)")
 
-    print("\n" + "=" * 60)
-    print(f"[✓] ĐÃ NẠP THÀNH CÔNG VÀO MILVUS!")
-    print(f"    - Tổng số documents: {docs_to_index:,}")
-    print(f"    - Thời gian thực thi: {elapsed:.2f} giây")
-    print(f"    - Tốc độ trung bình:   {rate:.1f} docs/giây")
-    print(f"    - File lưu trữ:        {args.db_path}")
-    print(f"    - Collection:          {collection_name}")
-    print("=" * 60)
 
-    # Hiển thị số lượng records trong collection
-    stats = client.get_collection_stats(collection_name=collection_name)
-    print(f"[i] Collection stats: {stats}")
+def main():
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
+
+    args = parse_args()
+
+    print("=" * 65)
+    print(f"  MILVUS DUAL DATASET INDEXER")
+    print(f"  DB Path:    {args.db_path}")
+    print(f"  Model:      {args.model_name}")
+    print(f"  Target:     {args.dataset.upper()}")
+    print("=" * 65)
+
+    print(f"[*] Đang tải mô hình SentenceTransformer: {args.model_name}...")
+    model = SentenceTransformer(args.model_name)
+    print(f"[+] Mô hình sẵn sàng (Vector Dim = {model.get_sentence_embedding_dimension()})")
+
+    print(f"[*] Kết nối Milvus tại: {args.db_path}...")
+    client = MilvusClient(uri=args.db_path)
+
+    # Xác định danh sách dataset cần nạp
+    if args.dataset == "both":
+        targets = ["zalo", "nq"]
+    else:
+        targets = [args.dataset]
+
+    for target in targets:
+        # Xác định số lượng tài liệu cần nạp
+        if args.limit is not None:
+            doc_limit = args.limit
+        elif target == "zalo":
+            doc_limit = args.limit_zalo
+        elif target == "nq":
+            doc_limit = args.limit_nq
+        else:
+            doc_limit = None
+
+        index_single_dataset(
+            client=client,
+            model=model,
+            dataset_key=target,
+            limit=doc_limit,
+            batch_size=args.batch_size,
+            recreate=args.recreate,
+        )
+
+    print("\n" + "=" * 65)
+    print("📊 TỔNG KẾT TRẠNG THÁI CÁC COLLECTIONS TRONG MILVUS:")
+    available_cols = client.list_collections()
+    for col in available_cols:
+        stats = client.get_collection_stats(col)
+        print(f"  • {col:15s}: {stats.get('row_count', 0):,} bản ghi")
+    print("=" * 65)
+
     client.close()
 
 
 if __name__ == "__main__":
     main()
-

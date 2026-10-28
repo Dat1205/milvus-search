@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Milvus Semantic Search - Tìm kiếm Văn bản Pháp luật</title>
+    <title>Milvus Dual-Dataset Semantic Search</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -12,51 +12,71 @@
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen">
-    <div class="max-w-5xl mx-auto px-4 py-8">
+    <div class="max-w-6xl mx-auto px-4 py-8">
         <!-- Header -->
         <header class="mb-8 text-center">
-            <div class="inline-flex items-center gap-3 bg-blue-50 border border-blue-200 px-4 py-1.5 rounded-full text-blue-700 text-sm font-medium mb-3">
-                <i class="fa-solid fa-database"></i> Milvus Vector Database + Sentence Transformers
+            <div class="inline-flex items-center gap-2 bg-indigo-50 border border-indigo-200 px-4 py-1.5 rounded-full text-indigo-700 text-sm font-semibold mb-3">
+                <i class="fa-solid fa-layer-group"></i> Milvus Multi-Dataset Vector Search
             </div>
             <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight sm:text-4xl">
-                Hệ Thống Tìm Kiếm Ngữ Nghĩa
+                Hệ Thống Tìm Kiếm Ngữ Nghĩa Song Song
             </h1>
-            <p class="mt-2 text-slate-600">
-                Tìm kiếm thông minh trên tập dữ liệu Zalo AI Legal với Milvus Cosine Similarity
+            <p class="mt-2 text-slate-600 max-w-2xl mx-auto text-sm sm:text-base">
+                Tìm kiếm thông minh trên đồng thời 2 kho dữ liệu: <b>Văn bản Pháp luật Việt Nam</b> và <b>Bách khoa Tri thức (NQ-VN)</b>
             </p>
-            <div class="mt-3 flex justify-center items-center gap-4 text-xs text-slate-500">
-                <span><i class="fa-solid fa-cube text-blue-500"></i> Collection: <b>{{ collection_name }}</b></span>
-                <span>•</span>
-                <span><i class="fa-solid fa-layer-group text-emerald-500"></i> Số tài liệu: <b>{{ "{:,}".format(doc_count) }}</b></span>
-                <span>•</span>
-                <span><i class="fa-solid fa-hard-drive text-amber-500"></i> Storage: <b>{{ db_path }}</b></span>
+            
+            <div class="mt-4 flex flex-wrap justify-center items-center gap-3 text-xs">
+                <span class="inline-flex items-center gap-1.5 bg-blue-50 border border-blue-200 text-blue-700 px-3 py-1 rounded-lg">
+                    <i class="fa-solid fa-scale-balanced"></i> Zalo Legal: <b>{{ "{:,}".format(zalo_count) }}</b> docs
+                </span>
+                <span class="inline-flex items-center gap-1.5 bg-purple-50 border border-purple-200 text-purple-700 px-3 py-1 rounded-lg">
+                    <i class="fa-solid fa-book-open"></i> NQ-VN: <b>{{ "{:,}".format(nq_count) }}</b> docs
+                </span>
+                <span class="inline-flex items-center gap-1.5 bg-slate-100 border border-slate-200 text-slate-600 px-3 py-1 rounded-lg">
+                    <i class="fa-solid fa-database"></i> DB: <b>{{ db_path }}</b>
+                </span>
             </div>
         </header>
 
-        <!-- Search Bar -->
-        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 mb-6">
+        <!-- Search Bar & Filters -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 mb-6">
+            <!-- Dataset Selector Tabs -->
+            <div class="flex flex-wrap items-center gap-2 mb-4 pb-3 border-b border-slate-100">
+                <span class="text-xs font-semibold text-slate-500 mr-2 uppercase tracking-wider">Phạm vi tìm kiếm:</span>
+                <button type="button" data-dataset="both" class="tab-btn active px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 bg-indigo-600 text-white shadow-sm">
+                    <i class="fa-solid fa-network-wired"></i> Cả 2 bộ dữ liệu (Song song)
+                </button>
+                <button type="button" data-dataset="zalo" class="tab-btn px-3.5 py-1.5 rounded-xl text-xs font-medium transition flex items-center gap-1.5 bg-slate-100 text-slate-700 hover:bg-slate-200">
+                    <i class="fa-solid fa-scale-balanced text-blue-600"></i> Chỉ Pháp luật (Zalo Legal)
+                </button>
+                <button type="button" data-dataset="nq" class="tab-btn px-3.5 py-1.5 rounded-xl text-xs font-medium transition flex items-center gap-1.5 bg-slate-100 text-slate-700 hover:bg-slate-200">
+                    <i class="fa-solid fa-book-open text-purple-600"></i> Chỉ Bách khoa Tri thức (NQ-VN)
+                </button>
+            </div>
+
+            <!-- Form -->
             <form id="searchForm" class="flex flex-col sm:flex-row gap-3">
                 <div class="relative flex-1">
                     <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
                     <input 
                         type="text" 
                         id="queryInput" 
-                        placeholder="Nhập câu hỏi, ví dụ: Quy định về bảo vệ đê điều trong mùa lũ..." 
-                        class="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-slate-800"
+                        placeholder="Nhập câu hỏi (pháp luật hoặc tri thức bách khoa)..." 
+                        class="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-slate-800"
                         autofocus
                         required
                     />
                 </div>
                 <div class="flex items-center gap-2">
-                    <select id="topKSelect" class="py-3 px-3 rounded-xl border border-slate-300 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
-                        <option value="3">Top 3</option>
-                        <option value="5" selected>Top 5</option>
-                        <option value="10">Top 10</option>
+                    <select id="topKSelect" class="py-3 px-3 rounded-xl border border-slate-300 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                        <option value="3">Top 3 mỗi bộ</option>
+                        <option value="5" selected>Top 5 mỗi bộ</option>
+                        <option value="10">Top 10 mỗi bộ</option>
                     </select>
                     <button 
                         type="submit" 
                         id="searchBtn"
-                        class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl transition duration-150 flex items-center gap-2 shadow-sm whitespace-nowrap"
+                        class="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl transition duration-150 flex items-center gap-2 shadow-sm whitespace-nowrap"
                     >
                         <i class="fa-solid fa-search"></i>
                         <span>Tìm kiếm</span>
@@ -66,15 +86,18 @@
 
             <!-- Sample Queries -->
             <div class="mt-4 pt-3 border-t border-slate-100 flex flex-wrap items-center gap-2 text-xs text-slate-500">
-                <span class="font-semibold text-slate-600"><i class="fa-regular fa-lightbulb text-amber-500 mr-1"></i>Gợi ý:</span>
-                <button type="button" class="sample-btn bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded-lg transition">
-                    Quy định về bảo vệ đê điều trong mùa lũ
+                <span class="font-semibold text-slate-600"><i class="fa-regular fa-lightbulb text-amber-500 mr-1"></i>Thử ngay:</span>
+                <button type="button" class="sample-btn bg-slate-100 hover:bg-blue-50 hover:text-blue-700 border border-slate-200 text-slate-700 px-2.5 py-1 rounded-lg transition" data-mode="zalo">
+                    ⚖️ Quy định bảo vệ đê điều trong mùa lũ
                 </button>
-                <button type="button" class="sample-btn bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded-lg transition">
-                    Tổ chức lực lượng tuần tra canh gác đê
+                <button type="button" class="sample-btn bg-slate-100 hover:bg-blue-50 hover:text-blue-700 border border-slate-200 text-slate-700 px-2.5 py-1 rounded-lg transition" data-mode="zalo">
+                    ⚖️ Xử phạt quay đầu xe trên đường cao tốc
                 </button>
-                <button type="button" class="sample-btn bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded-lg transition">
-                    Trách nhiệm xử lý vi phạm giao thông
+                <button type="button" class="sample-btn bg-slate-100 hover:bg-purple-50 hover:text-purple-700 border border-slate-200 text-slate-700 px-2.5 py-1 rounded-lg transition" data-mode="nq">
+                    🌍 Bài hát Không thể không yêu ra mắt năm nào?
+                </button>
+                <button type="button" class="sample-btn bg-slate-100 hover:bg-purple-50 hover:text-purple-700 border border-slate-200 text-slate-700 px-2.5 py-1 rounded-lg transition" data-mode="nq">
+                    🌍 Nguồn gốc các di tích lịch sử
                 </button>
             </div>
         </div>
@@ -82,33 +105,34 @@
         <!-- Metrics Banner -->
         <div id="metricsBox" class="hidden mb-6 bg-slate-100 rounded-xl px-4 py-2.5 text-xs text-slate-600 flex flex-wrap justify-between items-center gap-2 border border-slate-200">
             <div>
-                <span class="font-medium text-slate-800" id="resQuery"></span>
+                <span class="font-bold text-slate-800" id="resQuery"></span>
             </div>
             <div class="flex items-center gap-4">
                 <span>Embedding: <b id="embedTime">0</b>ms</span>
-                <span>Milvus: <b id="searchTime">0</b>ms</span>
-                <span>Tổng: <b id="totalTime" class="text-blue-600">0</b>ms</span>
+                <span>Milvus Search: <b id="searchTime">0</b>ms</span>
+                <span>Tổng: <b id="totalTime" class="text-indigo-600">0</b>ms</span>
             </div>
         </div>
 
         <!-- Loading State -->
         <div id="loading" class="hidden text-center py-12">
-            <i class="fa-solid fa-circle-notch fa-spin text-3xl text-blue-600 mb-3"></i>
-            <p class="text-slate-500 text-sm">Đang trích xuất vector và tìm kiếm trong Milvus...</p>
+            <i class="fa-solid fa-circle-notch fa-spin text-3xl text-indigo-600 mb-3"></i>
+            <p class="text-slate-500 text-sm">Đang trích xuất vector và tìm kiếm đối sánh trong Milvus...</p>
         </div>
 
         <!-- Results Container -->
-        <div id="resultsContainer" class="space-y-4"></div>
+        <div id="resultsContainer" class="space-y-6"></div>
 
-        <!-- Empty / Init Placeholder -->
+        <!-- Empty Placeholder -->
         <div id="emptyPlaceholder" class="text-center py-16 bg-white rounded-2xl border border-dashed border-slate-300 text-slate-400">
             <i class="fa-solid fa-magnifying-glass text-4xl mb-3 text-slate-300"></i>
-            <p class="font-medium">Nhập câu hỏi phía trên để tìm kiếm tài liệu</p>
-            <p class="text-xs text-slate-400 mt-1">Hệ thống sẽ đối sánh ngữ nghĩa và trả về các điều khoản phù hợp nhất</p>
+            <p class="font-medium">Nhập câu hỏi phía trên để tìm kiếm</p>
+            <p class="text-xs text-slate-400 mt-1">Hệ thống sẽ đối sánh vector Cosine và trả kết quả theo từng bộ dữ liệu tương ứng</p>
         </div>
     </div>
 
     <script>
+        let selectedDataset = 'both';
         const form = document.getElementById('searchForm');
         const queryInput = document.getElementById('queryInput');
         const topKSelect = document.getElementById('topKSelect');
@@ -117,13 +141,81 @@
         const emptyPlaceholder = document.getElementById('emptyPlaceholder');
         const metricsBox = document.getElementById('metricsBox');
 
-        // Gợi ý câu hỏi
+        // Tab selection
+        const tabBtns = document.querySelectorAll('.tab-btn');
+        tabBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                tabBtns.forEach(b => {
+                    b.classList.remove('bg-indigo-600', 'text-white', 'shadow-sm', 'active');
+                    b.classList.add('bg-slate-100', 'text-slate-700');
+                });
+                btn.classList.remove('bg-slate-100', 'text-slate-700');
+                btn.classList.add('bg-indigo-600', 'text-white', 'shadow-sm', 'active');
+                selectedDataset = btn.dataset.dataset;
+            });
+        });
+
+        // Sample queries
         document.querySelectorAll('.sample-btn').forEach(btn => {
             btn.addEventListener('click', () => {
-                queryInput.value = btn.innerText.trim();
+                queryInput.value = btn.innerText.replace(/^[^\w\s]+/, '').trim();
+                const mode = btn.dataset.mode;
+                if (mode) {
+                    const targetTab = document.querySelector(`.tab-btn[data-dataset="${mode}"]`);
+                    if (targetTab) targetTab.click();
+                }
                 form.dispatchEvent(new Event('submit'));
             });
         });
+
+        function renderCard(hit, idx, isNQ = false) {
+            const badgeColor = isNQ 
+                ? 'bg-purple-50 text-purple-700 border-purple-200'
+                : 'bg-blue-50 text-blue-700 border-blue-200';
+            const categoryTag = isNQ
+                ? '<span class="text-xs px-2 py-0.5 rounded bg-purple-100 text-purple-800 font-semibold mr-2"><i class="fa-solid fa-book-open mr-1"></i>NQ-VN</span>'
+                : '<span class="text-xs px-2 py-0.5 rounded bg-blue-100 text-blue-800 font-semibold mr-2"><i class="fa-solid fa-scale-balanced mr-1"></i>Pháp Luật</span>';
+
+            let enSection = '';
+            if (isNQ && hit.og_title) {
+                enSection = `
+                    <div class="mt-3 pt-2 border-t border-slate-100 text-xs text-slate-500">
+                        <span class="font-semibold text-slate-600"><i class="fa-solid fa-globe mr-1 text-slate-400"></i>Bản gốc tiếng Anh:</span>
+                        <div class="mt-1 pl-4 italic border-l-2 border-purple-200 text-slate-600">
+                            <b>${hit.og_title}</b>: ${hit.og_text || ''}
+                        </div>
+                    </div>
+                `;
+            }
+
+            return `
+                <div class="bg-white rounded-xl p-5 border border-slate-200 hover:shadow-md transition duration-200">
+                    <div class="flex items-start justify-between gap-4 mb-2">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-slate-100 text-slate-700 font-bold text-xs">
+                                #${idx}
+                            </span>
+                            ${categoryTag}
+                            <h3 class="font-bold text-slate-900 text-base">
+                                ${hit.title || 'Không có tiêu đề'}
+                            </h3>
+                        </div>
+                        <div class="flex items-center gap-2 flex-shrink-0">
+                            <span class="border px-2.5 py-0.5 rounded-full text-xs font-semibold ${badgeColor}">
+                                Cosine: ${hit.score.toFixed(4)}
+                            </span>
+                            <span class="text-xs text-slate-400 font-mono">
+                                ${hit.id}
+                            </span>
+                        </div>
+                    </div>
+                    <p class="text-slate-600 text-sm leading-relaxed whitespace-pre-line pl-8">
+                        ${hit.text}
+                    </p>
+                    ${enSection}
+                </div>
+            `;
+        }
 
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -139,7 +231,11 @@
                 const res = await fetch('/api/search', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ query: query, top_k: parseInt(topKSelect.value) })
+                    body: JSON.stringify({
+                        query: query,
+                        dataset: selectedDataset,
+                        top_k: parseInt(topKSelect.value)
+                    })
                 });
 
                 const data = await res.json();
@@ -154,53 +250,63 @@
                     return;
                 }
 
-                // Render metrics
-                document.getElementById('resQuery').innerText = `Kết quả cho "${data.query}" (${data.hits.length} tài liệu)`;
+                document.getElementById('resQuery').innerText = `Kết quả cho: "${data.query}"`;
                 document.getElementById('embedTime').innerText = data.metrics.embed_ms;
                 document.getElementById('searchTime').innerText = data.metrics.search_ms;
                 document.getElementById('totalTime').innerText = data.metrics.total_ms;
                 metricsBox.classList.remove('hidden');
 
-                if (data.hits.length === 0) {
+                const zaloHits = (data.results && data.results.zalo_legal) || [];
+                const nqHits = (data.results && data.results.nq_vn) || [];
+
+                if (zaloHits.length === 0 && nqHits.length === 0) {
                     resultsContainer.innerHTML = `
-                        <div class="text-center py-12 text-slate-500">
-                            Không tìm thấy tài liệu phù hợp.
+                        <div class="text-center py-12 text-slate-500 bg-white rounded-xl border border-slate-200">
+                            Không tìm thấy tài liệu phù hợp trong các collection đã chọn.
                         </div>
                     `;
                     return;
                 }
 
-                resultsContainer.innerHTML = data.hits.map((hit, idx) => {
-                    const scorePct = Math.round(hit.score * 100);
-                    let badgeColor = "bg-emerald-50 text-emerald-700 border-emerald-200";
-                    if (hit.score < 0.6) badgeColor = "bg-amber-50 text-amber-700 border-amber-200";
+                let html = '';
 
-                    return `
-                        <div class="bg-white rounded-xl p-5 border border-slate-200 hover:shadow-md transition duration-200">
-                            <div class="flex items-start justify-between gap-4 mb-2">
-                                <div class="flex items-center gap-2">
-                                    <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-slate-100 text-slate-700 font-semibold text-xs">
-                                        ${idx + 1}
-                                    </span>
-                                    <h3 class="font-bold text-slate-900 text-base">
-                                        ${hit.title || 'Không có tiêu đề'}
-                                    </h3>
-                                </div>
-                                <div class="flex items-center gap-2 flex-shrink-0">
-                                    <span class="border px-2.5 py-0.5 rounded-full text-xs font-semibold ${badgeColor}">
-                                        Score: ${hit.score.toFixed(4)}
-                                    </span>
-                                    <span class="text-xs text-slate-400 font-mono">
-                                        ID: ${hit.id}
-                                    </span>
-                                </div>
+                // Hiển thị phần Zalo Legal
+                if (data.results && data.results.zalo_legal) {
+                    html += `
+                        <div class="space-y-3">
+                            <div class="flex items-center gap-2 border-b border-blue-200 pb-2">
+                                <i class="fa-solid fa-scale-balanced text-blue-600"></i>
+                                <h2 class="font-bold text-slate-800 text-lg">Văn bản Pháp luật Việt Nam (Zalo Legal)</h2>
+                                <span class="text-xs bg-blue-100 text-blue-800 font-semibold px-2 py-0.5 rounded-full">${zaloHits.length} kết quả</span>
                             </div>
-                            <p class="text-slate-600 text-sm leading-relaxed whitespace-pre-line pl-8">
-                                ${hit.text}
-                            </p>
+                            <div class="space-y-3">
+                                ${zaloHits.length > 0 
+                                    ? zaloHits.map((h, i) => renderCard(h, i + 1, false)).join('')
+                                    : '<p class="text-sm text-slate-500 italic py-2">Không có kết quả trong Zalo Legal.</p>'}
+                            </div>
                         </div>
                     `;
-                }).join('');
+                }
+
+                // Hiển thị phần NQ-VN
+                if (data.results && data.results.nq_vn) {
+                    html += `
+                        <div class="space-y-3 pt-4">
+                            <div class="flex items-center gap-2 border-b border-purple-200 pb-2">
+                                <i class="fa-solid fa-book-open text-purple-600"></i>
+                                <h2 class="font-bold text-slate-800 text-lg">Bách khoa Tri thức & Tổng hợp (NQ-VN)</h2>
+                                <span class="text-xs bg-purple-100 text-purple-800 font-semibold px-2 py-0.5 rounded-full">${nqHits.length} kết quả</span>
+                            </div>
+                            <div class="space-y-3">
+                                ${nqHits.length > 0 
+                                    ? nqHits.map((h, i) => renderCard(h, i + 1, true)).join('')
+                                    : '<p class="text-sm text-slate-500 italic py-2">Không có kết quả trong NQ-VN.</p>'}
+                            </div>
+                        </div>
+                    `;
+                }
+
+                resultsContainer.innerHTML = html;
 
             } catch (err) {
                 loading.classList.add('hidden');
