@@ -22,6 +22,7 @@ milvus/
 │   └── index.html            # Giao diện Web trực quan (Tailwind CSS, hỗ trợ tab chọn bộ dữ liệu)
 ├── docker-compose.yml        # File khởi chạy Milvus Standalone Server + Attu Web GUI qua Docker
 ├── TRIEN_KHAI_MILVUS.md      # Tài liệu hướng dẫn chi tiết toàn tập cách triển khai Milvus
+├── HUONG_DAN_BENCHMARK.md    # Hướng dẫn chi tiết cách benchmark toàn bộ dữ liệu
 ├── README.md                 # Tài liệu hướng dẫn sử dụng nhanh
 └── milvus_data.db/           # Thư mục lưu trữ database vector cục bộ của Milvus Lite
 ```
