@@ -46,17 +46,26 @@ python benchmark_full_corpus.py --dataset zalo --auto-index-full
 - Nạp dữ liệu (embedding + insert): ~12-15 phút (tốc độ ~60 docs/giây trên CPU).
 - Đánh giá 818 queries: ~25 giây.
 
-### Bước 2 (Tùy chọn): Benchmark bộ NQ-VN
+### Bước 2 (Khuyên dùng cho NQ-VN): Benchmark Siêu Tốc bằng Smart Pool (~2 đến 4 phút)
 
-> ⚠️ **Lưu ý:** Bộ NQ-VN có **2.681.468 tài liệu** — nạp toàn bộ sẽ mất khoảng **11-13 tiếng** trên CPU và ~6 GB ổ cứng. Khuyến nghị chỉ nạp một phần lớn hơn (ví dụ 50.000 - 100.000 docs) để kiểm tra trước.
+Do bộ NQ-VN có **2.681.468 tài liệu** (nạp toàn bộ mất 11-13 tiếng trên CPU), ta sử dụng script `benchmark_smart_pool.py`:
+- Tự động lấy **100% tài liệu đáp án trong `qrels`** (đúng 2.283 tài liệu).
+- Bổ sung tài liệu gây nhiễu (distractors) để tạo pool 5.000 hoặc 15.000 docs.
+- Đánh giá **100% câu hỏi (1.900 queries)** đối chiếu với đáp án chuẩn.
+- Thời gian chạy: **chỉ mất 2 ~ 4 phút**!
 
 ```bash
-# Nạp toàn bộ 2.68 triệu docs (cần nhiều giờ)
-python benchmark_full_corpus.py --dataset nq --auto-index-full
+# Benchmark NQ-VN với 100% câu hỏi (Pool 5.000 docs - Chạy cực nhanh ~2 phút):
+python benchmark_smart_pool.py --dataset nq --pool-size 5000 --recreate
 
-# HOẶC: Nạp 50.000 docs trước để thử nghiệm
-python index_milvus.py --dataset nq --limit-nq 50000 --recreate
-python benchmark_full_corpus.py --dataset nq
+# Benchmark NQ-VN với Pool 15.000 docs (Độ khó cao hơn, nhiều distractors hơn):
+python benchmark_smart_pool.py --dataset nq --pool-size 15000 --recreate
+```
+
+### Bước 3 (Tùy chọn): Benchmark NQ-VN toàn bộ 2.68 triệu docs (Cần 11-13 tiếng)
+
+```bash
+python benchmark_full_corpus.py --dataset nq --auto-index-full
 ```
 
 ### Bước 3 (Tùy chọn): Xuất kết quả ra file JSON

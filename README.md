@@ -17,6 +17,7 @@ milvus/
 ├── search_milvus.py          # Script tìm kiếm (CLI một câu hỏi, REPL tương tác)
 ├── evaluate_milvus.py        # Script đo lường Recall@K, Latency và QPS trên dữ liệu hiện có
 ├── benchmark_full_corpus.py  # Script tính toán & dự báo hiệu năng khi nạp 100% TOÀN BỘ dữ liệu
+├── benchmark_smart_pool.py   # Script benchmark siêu tốc (Ground-Truth Pool: 100% queries chỉ 3-5 phút)
 ├── app.py                    # Ứng dụng Web UI tìm kiếm song song bằng Flask
 ├── templates/
 │   └── index.html            # Giao diện Web trực quan (Tailwind CSS, hỗ trợ tab chọn bộ dữ liệu)
@@ -51,7 +52,31 @@ python benchmark_full_corpus.py --dataset zalo --output-json full_corpus_report.
 
 ---
 
-## 📊 2. Đánh giá Hiệu năng Hiện tại từ Qrels (`evaluate_milvus.py`)
+## ⚡ 2. Benchmark Siêu Tốc Bằng Smart Pool (`benchmark_smart_pool.py`) - KHUYÊN DÙNG
+
+Phương pháp tối ưu cho kho dữ liệu khổng lồ (như NQ-VN 2.68 triệu bài):
+- Tự động gom **100% tài liệu đáp án trong `qrels`** (~2.283 docs cho NQ, ~793 docs cho Zalo).
+- Bổ sung tài liệu gây nhiễu (Distractors) ngẫu nhiên (ví dụ 5.000 - 15.000 docs).
+- Đánh giá **100% câu hỏi** (1.900 queries NQ, 818 queries Zalo) đối chiếu với đáp án chuẩn.
+- Thời gian chạy: **chỉ mất 2 ~ 4 phút** thay vì chờ 12 tiếng!
+
+```bash
+# 1. Benchmark NQ-VN với 100% câu hỏi (Pool 5.000 docs - Chạy cực nhanh ~2 phút):
+python benchmark_smart_pool.py --dataset nq --pool-size 5000 --recreate
+
+# 2. Benchmark NQ-VN với Pool 15.000 docs (Tăng độ khó / nhiều nhiễu hơn):
+python benchmark_smart_pool.py --dataset nq --pool-size 15000 --recreate
+
+# 3. Benchmark Zalo Legal bằng Smart Pool:
+python benchmark_smart_pool.py --dataset zalo --pool-size 5000 --recreate
+
+# 4. Xuất kết quả ra file JSON:
+python benchmark_smart_pool.py --dataset nq --pool-size 5000 --output-json nq_smart_report.json
+```
+
+---
+
+## 📊 3. Đánh giá Hiệu năng Hiện tại từ Qrels (`evaluate_milvus.py`)
 
 Script [evaluate_milvus.py](file:///d:/New/milvus/evaluate_milvus.py) tự động đối sánh câu hỏi với nhãn chuẩn **`qrels`** trên số tài liệu hiện có trong Milvus:
 
