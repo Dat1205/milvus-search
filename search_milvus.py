@@ -14,6 +14,7 @@ from typing import List, Dict, Any, Optional
 from datasets import load_dataset
 from pymilvus import MilvusClient
 from sentence_transformers import SentenceTransformer
+from device_utils import add_device_args, load_embedding_model
 
 DEFAULT_MODEL = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
 DEFAULT_DB_PATH = "milvus_data.db"
@@ -79,16 +80,16 @@ def parse_args():
         default=100,
         help="Number of queries to evaluate (default: 100)",
     )
+    add_device_args(parser)
     return parser.parse_args()
 
 
 class MultiDatasetSearcher:
-    def __init__(self, db_path: str, model_name: str):
+    def __init__(self, db_path: str, model_name: str, device: str = "auto", fp16: bool = False):
         self.db_path = db_path
         self.model_name = model_name
 
-        print(f"[*] Đang tải mô hình embedding: {model_name}...")
-        self.model = SentenceTransformer(model_name)
+        self.model = load_embedding_model(model_name, device=device, fp16=fp16)
 
         print(f"[*] Kết nối Milvus tại: {db_path}...")
         self.client = MilvusClient(uri=db_path)
@@ -338,6 +339,8 @@ def main():
     searcher = MultiDatasetSearcher(
         db_path=args.db_path,
         model_name=args.model_name,
+        device=args.device,
+        fp16=args.fp16,
     )
 
     try:

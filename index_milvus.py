@@ -16,6 +16,7 @@ from datasets import load_dataset
 from pymilvus import MilvusClient, DataType
 from sentence_transformers import SentenceTransformer
 from tqdm import tqdm
+from device_utils import add_device_args, load_embedding_model
 
 DEFAULT_MODEL = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
 DEFAULT_DB_PATH = "milvus_data.db"
@@ -88,6 +89,7 @@ def parse_args():
         action="store_true",
         help="Drop existing collection and recreate from scratch",
     )
+    add_device_args(parser)
     return parser.parse_args()
 
 
@@ -245,9 +247,8 @@ def main():
     print(f"  Target:     {args.dataset.upper()}")
     print("=" * 65)
 
-    print(f"[*] Đang tải mô hình SentenceTransformer: {args.model_name}...")
-    model = SentenceTransformer(args.model_name)
-    print(f"[+] Mô hình sẵn sàng (Vector Dim = {model.get_sentence_embedding_dimension()})")
+    print(f"[*] Đang nạp mô hình SentenceTransformer: {args.model_name}...")
+    model = load_embedding_model(args.model_name, device=args.device, fp16=args.fp16)
 
     print(f"[*] Kết nối Milvus tại: {args.db_path}...")
     client = MilvusClient(uri=args.db_path)

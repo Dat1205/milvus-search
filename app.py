@@ -10,6 +10,7 @@ import time
 from flask import Flask, render_template, request, jsonify
 from pymilvus import MilvusClient
 from sentence_transformers import SentenceTransformer
+from device_utils import load_embedding_model, get_device_info, resolve_device
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
@@ -20,7 +21,7 @@ DB_PATH = "milvus_data.db"
 MODEL_NAME = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
 
 print(f"[*] Đang nạp mô hình embedding: {MODEL_NAME}...")
-model = SentenceTransformer(MODEL_NAME)
+model = load_embedding_model(MODEL_NAME, device="auto", fp16=True)
 
 print(f"[*] Kết nối Milvus tại: {DB_PATH}...")
 client = MilvusClient(uri=DB_PATH)

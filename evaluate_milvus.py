@@ -17,6 +17,7 @@ from datasets import load_dataset
 from pymilvus import MilvusClient
 from sentence_transformers import SentenceTransformer
 from tqdm import tqdm
+from device_utils import add_device_args, load_embedding_model
 
 DEFAULT_MODEL = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
 DEFAULT_DB_PATH = "milvus_data.db"
@@ -91,6 +92,7 @@ def parse_args():
         default=None,
         help="Path to save evaluation metrics as a JSON file",
     )
+    add_device_args(parser)
     return parser.parse_args()
 
 
@@ -360,8 +362,7 @@ def main():
     print(f"[+] Đã kết nối collection '{collection_name}' (Hiện có: {total_indexed_rows:,} tài liệu indexed)")
 
     # 2. Tải mô hình embedding
-    print(f"[*] Đang tải mô hình: {args.model_name}...")
-    model = SentenceTransformer(args.model_name)
+    model = load_embedding_model(args.model_name, device=args.device, fp16=args.fp16)
 
     # 3. Tải queries và qrels
     ground_truth = load_ground_truth(hf_name)

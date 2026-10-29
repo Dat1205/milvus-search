@@ -6,14 +6,18 @@ Dự án này tích hợp và vận hành đồng thời **2 bộ dữ liệu** 
 
 Toàn bộ dữ liệu vector của cả 2 bộ được quản lý trong cơ sở dữ liệu thống nhất: **`milvus_data.db`**.
 
+> 💡 **Xem hướng dẫn cài đặt và chạy chi tiết từ A-Z:** 👉 **[HUONG_DAN_CHAY.md](file:///d:/New/milvus/HUONG_DAN_CHAY.md)**
+
 ---
 
 ## 📁 Cấu trúc Thư mục
 
 ```text
 milvus/
+├── requirements.txt          # Danh sách thư viện Python cần cài đặt
+├── device_utils.py           # Module quản lý thiết bị GPU/CUDA, auto-detect, FP16, fallback CPU
 ├── download_data.py          # Script tải dữ liệu từ Hugging Face
-├── index_milvus.py           # Script trích xuất vector embedding và nạp vào Milvus
+├── index_milvus.py           # Script trích xuất vector embedding và nạp vào Milvus (hỗ trợ GPU & FP16)
 ├── search_milvus.py          # Script tìm kiếm (CLI một câu hỏi, REPL tương tác)
 ├── evaluate_milvus.py        # Script đo lường Recall@K, Latency và QPS trên dữ liệu hiện có
 ├── benchmark_full_corpus.py  # Script tính toán & dự báo hiệu năng khi nạp 100% TOÀN BỘ dữ liệu
@@ -22,9 +26,7 @@ milvus/
 ├── templates/
 │   └── index.html            # Giao diện Web trực quan (Tailwind CSS, hỗ trợ tab chọn bộ dữ liệu)
 ├── docker-compose.yml        # File khởi chạy Milvus Standalone Server + Attu Web GUI qua Docker
-├── TRIEN_KHAI_MILVUS.md      # Tài liệu hướng dẫn chi tiết toàn tập cách triển khai Milvus
-├── HUONG_DAN_BENCHMARK.md    # Hướng dẫn chi tiết cách benchmark toàn bộ dữ liệu
-├── HUONG_DAN_CHAY.md         # Hướng dẫn chạy nhanh từng bước (Quickstart Step-by-Step)
+├── HUONG_DAN_CHAY.md         # HƯỚNG DẪN CÀI ĐẶT VÀ CHẠY DỰ ÁN TRÊN MÁY MỚI (A - Z)
 ├── README.md                 # Tài liệu tổng quan dự án
 └── milvus_data.db/           # Thư mục lưu trữ database vector cục bộ của Milvus Lite
 ```
