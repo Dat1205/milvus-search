@@ -24,7 +24,8 @@ milvus/
 ├── docker-compose.yml        # File khởi chạy Milvus Standalone Server + Attu Web GUI qua Docker
 ├── TRIEN_KHAI_MILVUS.md      # Tài liệu hướng dẫn chi tiết toàn tập cách triển khai Milvus
 ├── HUONG_DAN_BENCHMARK.md    # Hướng dẫn chi tiết cách benchmark toàn bộ dữ liệu
-├── README.md                 # Tài liệu hướng dẫn sử dụng nhanh
+├── HUONG_DAN_CHAY.md         # Hướng dẫn chạy nhanh từng bước (Quickstart Step-by-Step)
+├── README.md                 # Tài liệu tổng quan dự án
 └── milvus_data.db/           # Thư mục lưu trữ database vector cục bộ của Milvus Lite
 ```
 
