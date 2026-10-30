@@ -1,0 +1,54 @@
+# =====================================================================
+# Git Ignore Configuration for Milvus Semantic Search & IR Benchmark
+# =====================================================================
+
+# 1. Cơ sở dữ liệu Vector cục bộ & Dữ liệu nhị phân lớn (>100MB không push lên GitHub)
+milvus_data.db/
+*.parquet
+*.idx
+*.arrow
+*.bin
+*.db
+
+# 2. Python bytecode & cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+
+# 3. Môi trường ảo (Virtual Environments)
+venv/
+.venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# 4. Cấu hình IDE & Text Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.directory
+
+# 5. File hệ điều hành
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 6. File nhật ký & Tệp tạm thời
+*.log
+volumes/
+tmp/
+scratch/
+.cache/
+.system_generated/
+
+# 7. File kết quả benchmark chi tiết (kích thước lớn)
+# Giữ lại benchmark_summary.json nếu cần xem tóm tắt
+benchmark_full_results.json
+benchmark_full_*.json
+benchmark_projection_*.json
+

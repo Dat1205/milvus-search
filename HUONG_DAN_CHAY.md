@@ -1,50 +1,54 @@
-# HƯỚNG DẪN CÀI ĐẶT VÀ CHẠY DỰ ÁN TRÊN MÁY MỚI (A - Z)
+# HƯỚNG DẪN CÀI ĐẶT, VẬN HÀNH & GIẢI THÍCH CHI TIẾT MÃ NGUỒN (A - Z)
 
-> **Tài liệu tổng hợp chuẩn mực:** Hướng dẫn thiết lập môi trường từ con số 0, cài đặt thư viện, nạp dữ liệu, tìm kiếm ngữ nghĩa (CLI & Web) và đánh giá hiệu năng (Benchmark) trên cả **CPU** và **GPU NVIDIA**.
+> **Tài liệu toàn diện dự án Milvus:** Tổng hợp hướng dẫn cài đặt môi trường từ con số 0 trên máy mới, vận hành tìm kiếm ngữ nghĩa, phương pháp benchmark 100% full dữ liệu và **giải thích chi tiết cấu trúc, logic toán học của từng file mã nguồn**.
 
 ---
 
 ## 📑 Mục Lục
 1. [Yêu cầu hệ thống (Prerequisites)](#1-yêu-cầu-hệ-thống-prerequisites)
-2. [Cài đặt môi trường & Thư viện](#2-cài-đặt-môi-trường--thư-viện)
-   - [A. Cài đặt các thư viện cơ bản (`requirements.txt`)](#a-cài-đặt-các-thư-viện-cơ-bản-requirementstxt)
-   - [B. Cấu hình GPU NVIDIA CUDA (Tùy chọn - Tăng tốc 15x - 20x)](#b-cấu-hình-gpu-nvidia-cuda-tùy-chọn---tăng-tốc-15x---20x)
+2. [Hướng dẫn cài đặt trên máy mới](#2-hướng-dẫn-cài-đặt-trên-máy-mới)
+   - [Bước 1: Khởi tạo môi trường ảo Python](#bước-1-khởi-tạo-môi-trường-ảo-python)
+   - [Bước 2: Cài đặt thư viện phụ thuộc (`requirements.txt`)](#bước-2-cài-đặt-thư-viện-phụ-thuộc-requirementstxt)
+   - [Bước 3: Cấu hình PyTorch tăng tốc GPU CUDA](#bước-3-cấu-hình-pytorch-tăng-tốc-gpu-cuda)
 3. [Tải dữ liệu từ Hugging Face](#3-tải-dữ-liệu-từ-hugging-face)
-4. [Nạp dữ liệu vào cơ sở dữ liệu vector (`index_milvus.py`)](#4-nạp-dữ-liệu-vào-cơ-sở-dữ-liệu-vector-index_milvuspy)
+4. [Nạp dữ liệu vào Vector Database (`index_milvus.py`)](#4-nạp-dữ-liệu-vào-vector-database-index_milvuspy)
 5. [Tìm kiếm ngữ nghĩa (Semantic Search)](#5-tìm-kiếm-ngữ-nghĩa-semantic-search)
-   - [A. Tìm kiếm nhanh 1 câu (CLI)](#a-tìm-kiếm-nhanh-1-câu-cli)
-   - [B. Chế độ tương tác liên tục (Interactive REPL)](#b-chế-độ-tương-tác-liên-tục-interactive-repl)
-   - [C. Khởi chạy Giao diện Web trực quan (`app.py`)](#c-khởi-chạy-giao-diện-web-trực-quan-apppy)
+   - [Tìm kiếm dòng lệnh CLI (`search_milvus.py`)](#tìm-kiếm-dòng-lệnh-cli-search_milvuspy)
+   - [Giao diện Web trực quan (`app.py`)](#giao-diện-web-trực-quan-apppy)
 6. [Đánh giá hiệu năng & Benchmark chuẩn Qrels](#6-đánh-giá-hiệu-năng--benchmark-chuẩn-qrels)
-   - [Cách 1: Benchmark siêu tốc bằng Smart Pool (Khuyên dùng)](#cách-1-benchmark-siêu-tốc-bằng-smart-pool-khuyên-dùng)
-   - [Cách 2: Đánh giá trên dữ liệu hiện có (`evaluate_milvus.py`)](#cách-2-đánh-giá-trên-dữ-liệu-hiện-có-evaluate_milvuspy)
-   - [Cách 3: Tính toán & Dự báo quy mô toàn bộ Corpus (`benchmark_full_corpus.py`)](#cách-3-tính-toán--dự-báo-quy-mô-toàn-bộ-corpus-benchmark_full_corpuspy)
-7. [Triển khai Milvus Standalone Server với Docker (Tùy chọn)](#7-triển-khai-milvus-standalone-server-với-docker-tùy-chọn)
-8. [Bảng tra cứu nhanh lệnh (Cheat Sheet)](#8-bảng-tra-cứu-nhanh-lệnh-cheat-sheet)
-9. [Xử lý sự cố thường gặp (Troubleshooting)](#9-xử-lý-sự-cố-thường-gặp-troubleshooting)
+   - [A. Benchmark 100% Full Corpus, Queries & Qrels (`benchmark_full.py`)](#a-benchmark-100-full-corpus-queries--qrels-benchmark_fullpy)
+   - [B. Benchmark nhanh cả 2 bộ dữ liệu (`benchmark_all.py`)](#b-benchmark-nhanh-cả-2-bộ-dữ-liệu-benchmark_allpy)
+   - [C. Benchmark siêu tốc bằng Smart Pool (`benchmark_smart_pool.py`)](#c-benchmark-siêu-tốc-bằng-smart-pool-benchmark_smart_poolpy)
+7. [Giải thích chi tiết cấu trúc & Mã nguồn hệ thống](#7-giải-thích-chi-tiết-cấu-trúc--mã-nguồn-hệ-thống)
+   - [1. `device_utils.py` - Quản lý phần cứng & Tăng tốc GPU](#1-device_utilspy---quản-lý-phần-cứng--tăng-tốc-gpu)
+   - [2. `index_milvus.py` - Xây dựng Schema & Trích xuất Embeddings](#2-index_milvuspy---xây-dựng-schema--trích-xuất-embeddings)
+   - [3. `search_milvus.py` - Cơ chế tìm kiếm & Xếp hạng Cosine](#3-search_milvuspy---cơ-chế-tìm-kiếm--xếp-hạng-cosine)
+   - [4. `benchmark_full.py` - Đánh giá Full Corpus & Xuất JSON](#4-benchmark_fullpy---đánh-giá-full-corpus--xuất-json)
+   - [5. `benchmark_smart_pool.py` - Kỹ thuật Smart Pool Guarantee](#5-benchmark_smart_poolpy---kỹ-thuật-smart-pool-guarantee)
+   - [6. `app.py` - Kiến trúc Web REST API & Giao diện](#6-apppy---kiến-trúc-web-rest-api--giao-diện)
+8. [Giải thích các chỉ số đánh giá Information Retrieval (IR)](#8-giải-thích-các-chỉ-số-đánh-giá-information-retrieval-ir)
+9. [Bảng tra cứu nhanh lệnh (Cheat Sheet) & Xử lý lỗi](#9-bảng-tra-cứu-nhanh-lệnh-cheat-sheet--xử-lý-lỗi)
 
 ---
 
 ## 1. Yêu cầu hệ thống (Prerequisites)
 
-* **Hệ điều hành:** Windows 10/11, Ubuntu/Debian Linux, hoặc macOS.
-* **Python:** Phiên bản **3.10 trở lên** (khuyến nghị Python 3.11, 3.12, hoặc 3.14).
-* **Git:** Dùng để clone mã nguồn dự án.
+* **Hệ điều hành:** Windows 10/11 (64-bit), Ubuntu/Debian Linux, hoặc macOS.
+* **Python:** Phiên bản **3.10 trở lên** (Đã kiểm thử tối ưu trên Python 3.11, 3.12 và 3.14).
 * **Phần cứng:**
-  * **RAM tối thiểu:** 8 GB RAM (khuyến nghị 16 GB).
-  * **Ổ cứng:** Còn trống tối thiểu 5 - 10 GB.
-  * **Card đồ họa (GPU):** Card rời NVIDIA (GTX 1650, RTX 2050/3050/4060/5060, v.v.) nếu muốn tăng tốc độ tính vector. Nếu không có card rời, hệ thống vẫn chạy ổn định trên CPU.
+  * **RAM tối thiểu:** 8 GB RAM (khuyến nghị 16 GB để nạp cache mượt mà).
+  * **Ổ cứng:** Còn trống tối thiểu 5 – 10 GB cho database `milvus_data.db`.
+  * **GPU (Tùy chọn):** Card NVIDIA (RTX 20/30/40/50 series hoặc GTX) có hỗ trợ CUDA. Nếu không có card rời, code tự động chạy trên CPU.
 
 ---
 
-## 2. Cài đặt môi trường & Thư viện
+## 2. Hướng dẫn cài đặt trên máy mới
 
-Mở terminal (PowerShell trên Windows hoặc Terminal trên Linux/Mac) tại thư mục dự án:
-
-### A. Cài đặt các thư viện cơ bản (`requirements.txt`)
+### Bước 1: Khởi tạo môi trường ảo Python
+Mở Terminal / PowerShell tại thư mục dự án `d:\New\milvus`:
 
 ```bash
-# Khởi tạo môi trường ảo (Khuyến khích)
+# Tạo môi trường ảo (Virtual Environment)
 python -m venv venv
 
 # Kích hoạt môi trường ảo:
@@ -52,231 +56,221 @@ python -m venv venv
 .\venv\Scripts\Activate.ps1
 # Trên Linux/macOS:
 source venv/bin/activate
+```
 
-# Cài đặt toàn bộ dependencies:
+### Bước 2: Cài đặt thư viện phụ thuộc (`requirements.txt`)
+```bash
 pip install -r requirements.txt
 ```
 
----
+### Bước 3: Cấu hình PyTorch tăng tốc GPU CUDA
+Nếu máy tính có card đồ họa NVIDIA, cài bản dựng PyTorch CUDA để tăng tốc tính embedding gấp **15x – 20x** (đạt 800 – 1.200 docs/s):
 
-### B. Cấu hình GPU NVIDIA CUDA (Tùy chọn - Tăng tốc 15x - 20x)
-
-Dự án có module tự động nhận diện phần cứng [`device_utils.py`](file:///d:/New/milvus/device_utils.py). Khi có GPU CUDA, tốc độ tính embedding sẽ tăng vọt từ ~60 docs/s (CPU) lên **800 - 1.200 docs/s (GPU)**.
-
-Cài đặt phiên bản PyTorch phù hợp với card đồ họa của bạn:
-
-* **Đối với dòng card mới NVIDIA RTX 50-series (RTX 5060, 5070, 5080, 5090) hoặc máy có CUDA 13.x:**
+* **Dòng card NVIDIA RTX 50-series (RTX 5060, 5070, 5080, 5090) hoặc máy dùng CUDA 13.x:**
   ```bash
   pip install torch==2.14.1+cu132 --index-url https://download.pytorch.org/whl/cu132
   ```
-
-* **Đối với các dòng card NVIDIA RTX 20/30/40-series hoặc GTX (CUDA 12.x/11.x phổ biến):**
+* **Dòng card NVIDIA RTX 20/30/40-series hoặc GTX (CUDA 12.x/11.x phổ biến):**
   ```bash
   pip install torch --index-url https://download.pytorch.org/whl/cu124
   ```
-
-* **Kiểm tra trạng thái kích hoạt GPU:**
+* **Kiểm tra trạng thái nhận diện GPU:**
   ```bash
-  python -c "import torch; print('CUDA Ready:', torch.cuda.is_available(), '| GPU:', torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU')"
+  python -c "import torch; print('CUDA Ready:', torch.cuda.is_available(), '| GPU:', torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'None')"
   ```
-  *(Nếu hiện `CUDA Ready: True` và tên GPU của bạn là đã sẵn sàng)*.
+  *(Nếu hiện `CUDA Ready: True` kèm tên card đồ họa của bạn là thành công)*.
 
 ---
 
 ## 3. Tải dữ liệu từ Hugging Face
 
-Dự án sử dụng 2 bộ dữ liệu chuẩn tiếng Việt từ GreenNode:
+Dự án sử dụng 2 bộ dữ liệu tiếng Việt chuẩn của GreenNode:
 1. `GreenNode/zalo-ai-legal-text-retrieval-vn`: 61.425 điều khoản pháp luật Việt Nam.
-2. `GreenNode/nq-vn`: 2.681.468 đoạn văn bản bách khoa tri thức.
+2. `GreenNode/nq-vn`: 2.681.468 đoạn trích bách khoa tri thức (bản dịch và gốc tiếng Anh từ Google Natural Questions).
 
-Để tải trước toàn bộ dữ liệu vào bộ nhớ đệm (cache):
+Để tải trước toàn bộ dữ liệu vào cache máy cục bộ:
 ```bash
 python download_data.py
 ```
-*(Lưu ý: Nếu không chạy lệnh này, các script nạp dữ liệu bên dưới vẫn sẽ tự động tải khi cần).*
+*(Lưu ý: Nếu không chạy lệnh này, các script nạp dữ liệu bên dưới vẫn tự động tải dữ liệu khi cần)*.
 
 ---
 
-## 4. Nạp dữ liệu vào cơ sở dữ liệu vector (`index_milvus.py`)
+## 4. Nạp dữ liệu vào Vector Database (`index_milvus.py`)
 
-Dữ liệu vector được lưu vào cơ sở dữ liệu nhúng nhẹ **`milvus_data.db`** (Milvus Lite - không cần cài đặt server hay Docker).
+Dữ liệu vector được lưu vào cơ sở dữ liệu nhúng **`milvus_data.db`** (Milvus Lite).
 
-### A. Nạp dữ liệu Pháp luật Việt Nam (Zalo Legal)
 ```bash
-# Nạp mẫu 5.000 điều khoản (mất ~1 phút trên CPU, ~15 giây trên GPU):
-python index_milvus.py --dataset zalo --limit-zalo 5000 --recreate
-
-# Tăng tốc tối đa với GPU và FP16:
+# Nạp 5.000 điều khoản Zalo Legal (Chạy thử nghiệm nhanh trong 15s trên GPU):
 python index_milvus.py --dataset zalo --limit-zalo 5000 --device cuda --fp16 --recreate
 
-# Nạp toàn bộ 61.425 điều khoản Zalo Legal:
-python index_milvus.py --dataset zalo --recreate --device cuda --fp16
-```
+# Nạp TOÀN BỘ 61.425 điều khoản Zalo Legal vào Milvus:
+python index_milvus.py --dataset zalo --device cuda --fp16 --recreate
 
-### B. Nạp dữ liệu Tri thức Bách khoa (NQ-VN)
-```bash
-# Nạp 5.000 đoạn trích NQ-VN (có trường song ngữ title/og_title):
+# Nạp 5.000 bài viết NQ-VN (song ngữ title + og_title):
 python index_milvus.py --dataset nq --limit-nq 5000 --device cuda --fp16 --recreate
-```
-
-### C. Nạp đồng thời cả 2 bộ dữ liệu:
-```bash
-python index_milvus.py --dataset both --limit 5000 --device cuda --fp16 --recreate
 ```
 
 ---
 
 ## 5. Tìm kiếm ngữ nghĩa (Semantic Search)
 
-### A. Tìm kiếm nhanh 1 câu (CLI)
+### Tìm kiếm dòng lệnh CLI (`search_milvus.py`)
 ```bash
-# Tìm kiếm trên cả 2 bộ dữ liệu (tự động phát hiện GPU/CPU):
-python search_milvus.py --query "Quy định về thời hiệu xử phạt vi phạm hành chính" --dataset both
+# Tìm kiếm 1 câu bất kỳ trên cả 2 bộ dữ liệu:
+python search_milvus.py --query "Quy định về xử phạt vi phạm nồng độ cồn" --dataset both
 
-# Chỉ tìm trong bộ dữ liệu Pháp luật (Zalo Legal):
-python search_milvus.py --query "Điều kiện cấp giấy phép lái xe ô tô" --dataset zalo --top-k 3
-
-# Chỉ tìm trong bộ dữ liệu Bách khoa (NQ-VN):
-python search_milvus.py --query "Ai là người đầu tiên đặt chân lên mặt trăng?" --dataset nq --top-k 3
-```
-
-### B. Chế độ tương tác liên tục (Interactive REPL)
-```bash
+# Chế độ dòng lệnh tương tác liên tục (Interactive REPL):
 python search_milvus.py --interactive
 ```
-* Trong cửa sổ tương tác:
-  * Nhập câu hỏi và nhấn `Enter` để xem kết quả ngay lập tức.
-  * Gõ `:zalo` để chuyển mục tiêu sang Pháp luật.
-  * Gõ `:nq` để chuyển sang Bách khoa tri thức.
-  * Gõ `:both` để tìm kiếm song song cả hai.
-  * Gõ `:k 10` để đổi số lượng top kết quả thành 10.
-  * Gõ `quit` hoặc `exit` để thoát.
+* Trong chế độ tương tác: nhập câu hỏi và `Enter`. Có thể dùng `:zalo`, `:nq`, `:both`, hoặc `:k 10` để đổi chế độ tức thời.
 
-### C. Khởi chạy Giao diện Web trực quan (`app.py`)
+### Giao diện Web trực quan (`app.py`)
 ```bash
 python app.py
 ```
-* Mở trình duyệt web truy cập vào: **`http://localhost:5000`**
-* **Tính năng:**
-  * Giao diện hiện đại (Tailwind CSS, Dark/Light mode).
-  * Tab chuyển đổi linh hoạt: *Tất cả*, *Pháp luật Việt Nam*, hoặc *Bách khoa tri thức NQ-VN*.
-  * Hiển thị điểm tương đồng Cosine, độ trễ thời gian thực (Embedding + Milvus Search).
-  * Hiển thị song ngữ (Tiêu đề dịch & Tiêu đề gốc tiếng Anh cho NQ-VN).
+Mở trình duyệt truy cập: **`http://localhost:5000`**
+* Hỗ trợ tìm kiếm song song cả 2 bộ dữ liệu, tab chọn bộ dữ liệu, hiển thị độ trễ thời gian thực và bài viết song ngữ Anh - Việt.
 
 ---
 
 ## 6. Đánh giá hiệu năng & Benchmark chuẩn Qrels
 
-Hệ thống đánh giá độ chính xác theo chuẩn Information Retrieval (IR) quốc tế, đo lường các chỉ số:
-* **Recall@K & Hit@K** ($K \in [1, 3, 5, 10, 20, 50]$): Tỷ lệ truy xuất đúng tài liệu đáp án trong top K kết quả.
-* **MRR@K (Mean Reciprocal Rank):** Đánh giá vị trí xếp hạng của tài liệu đúng.
-* **Latency Percentiles:** Phân tích chi tiết thời gian nhúng (Embedding) và thời gian tìm kiếm vector (Search) ở các mốc P50, P90, P95, P99.
-* **Throughput (QPS):** Đo số lượng truy vấn hệ thống xử lý được trên mỗi giây (Single-stream & Batched QPS).
+### A. Benchmark 100% Full Corpus, Queries & Qrels (`benchmark_full.py`)
 
----
-
-### Cách 1: Benchmark siêu tốc bằng Smart Pool (Khuyên dùng)
-
-> **Giải pháp tối ưu thời gian:** Thay vì phải chờ nạp 2.68 triệu tài liệu NQ-VN mất 12 tiếng, phương pháp **Smart Pool** tự động trích xuất **100% tài liệu đáp án có trong `qrels`**, kết hợp với tài liệu gây nhiễu (distractors), cho phép đánh giá **100% câu hỏi** chỉ trong **2 - 4 phút**.
+> **Khuyến nghị cho bài toán đánh giá toàn diện:** Chạy trên **100% dữ liệu thực nghiệm**, không dùng sample hay pool rút gọn. Tự động xuất file kết quả JSON.
 
 ```bash
-# 1. Benchmark NQ-VN với 100% câu hỏi (1.900 queries) trên GPU:
-python benchmark_smart_pool.py --dataset nq --pool-size 5000 --device cuda --fp16 --recreate
+# 1. Benchmark 100% Full Corpus Zalo Legal (61.425 docs, 818 queries, 793 qrels) - Chạy trong ~38 giây:
+python benchmark_full.py --dataset zalo --device cuda --fp16
 
-# 2. Benchmark Zalo Legal với 100% câu hỏi (818 queries) trên GPU:
-python benchmark_smart_pool.py --dataset zalo --pool-size 5000 --device cuda --fp16 --recreate
+# 2. Benchmark 100% Full Corpus NQ-VN (Tự động nạp nốt 2.68 triệu docs rồi đo 1.900 queries):
+python benchmark_full.py --dataset nq --device cuda --fp16
 
-# 3. Xuất kết quả ra file JSON để làm báo cáo:
-python benchmark_smart_pool.py --dataset nq --pool-size 5000 --output-json benchmark_nq_results.json
+# 3. Chạy lần lượt cả 2 bộ dữ liệu và lưu kết quả JSON tùy chỉnh:
+python benchmark_full.py --dataset both --device cuda --fp16 --output-json full_results.json
+```
+
+### B. Benchmark nhanh cả 2 bộ dữ liệu (`benchmark_all.py`)
+```bash
+python benchmark_all.py --device cuda --fp16
+```
+Tự động chạy Zalo Legal (100% corpus) $\rightarrow$ NQ-VN (Smart Pool 100% ground-truth) $\rightarrow$ In bảng so sánh đối đầu song song chỉ trong **1 phút 10 giây**.
+
+### C. Benchmark siêu tốc bằng Smart Pool (`benchmark_smart_pool.py`)
+```bash
+python benchmark_smart_pool.py --dataset nq --pool-size 5000 --device cuda --fp16
 ```
 
 ---
 
-### Cách 2: Đánh giá trên dữ liệu hiện có (`evaluate_milvus.py`)
+## 7. Giải thích chi tiết cấu trúc & Mã nguồn hệ thống
 
-Đo lường trực tiếp trên collection hiện có trong `milvus_data.db`:
-```bash
-# Đánh giá 100 câu hỏi trên bộ Zalo:
-python evaluate_milvus.py --dataset zalo --limit-queries 100
-
-# Chỉ đánh giá các câu hỏi có đáp án nằm trong dữ liệu đã nạp (In-Corpus):
-python evaluate_milvus.py --dataset zalo --in-corpus-only
-```
-
----
-
-### Cách 3: Tính toán & Dự báo quy mô toàn bộ Corpus (`benchmark_full_corpus.py`)
-
-Dựa trên mô hình định lượng độ phức tạp thuật toán đồ thị HNSW $\mathcal{O}(\log N)$, dự phóng chính xác tài nguyên RAM, Disk và QPS khi tăng quy mô từ 5.000 docs $\rightarrow$ 61.425 docs $\rightarrow$ 2.680.000 docs:
-
-```bash
-# Dự báo lý thuyết quy mô cho Zalo Legal:
-python benchmark_full_corpus.py --dataset zalo
-
-# Dự báo lý thuyết quy mô cho NQ-VN (2.68 triệu docs):
-python benchmark_full_corpus.py --dataset nq
-
-# Tự động nạp nốt 100% văn bản Zalo Legal còn thiếu rồi đo kiểm thực tế:
-python benchmark_full_corpus.py --dataset zalo --auto-index-full --device cuda --fp16
-```
+### 1. `device_utils.py` - Quản lý phần cứng & Tăng tốc GPU
+File này đóng vai trò là "trạm điều phối phần cứng", đảm bảo tính tương thích và hiệu năng tối đa:
+* `resolve_device(device_arg="auto")`: Tự động gọi `torch.cuda.is_available()`. Nếu máy có card rời NVIDIA, trả về chuỗi `"cuda"`, ngược lại trả về `"cpu"`.
+* `load_embedding_model(model_name, device, fp16, warmup)`: 
+  * Nạp mô hình Transformer lên thiết bị đích.
+  * Nếu chọn GPU và bật cờ `fp16=True`, gọi `model.half()` để chuyển trọng số mô hình từ FP32 (32-bit float) sang FP16 (16-bit half-precision). Điều này giúp **giảm 50% dung lượng VRAM** và **tăng gấp đôi tốc độ xử lý Tensor Core**.
+  * **Warm-up Kernel:** Chạy một câu thử nghiệm ngắn `model.encode(["..."])` để CUDA load trước thư viện cuBLAS vào GPU. Nhờ đó, câu truy vấn đầu tiên của người dùng sẽ không bị độ trễ (latency spike).
+  * **Safe Fallback:** Nếu GPU gặp lỗi bộ nhớ (OOM) hoặc driver không khớp, `try...except` sẽ tự động chuyển mô hình về CPU mà không làm gián đoạn chương trình.
 
 ---
 
-## 7. Triển khai Milvus Standalone Server với Docker (Tùy chọn)
-
-Nếu bạn muốn chuyển từ **Milvus Lite** (file cục bộ) sang **Milvus Server Standalone** chuyên nghiệp có giao diện đồ họa **Attu Web GUI**:
-
-1. **Khởi động cụm Milvus bằng Docker Compose:**
-   ```bash
-   docker compose up -d
-   ```
-2. **Truy cập các dịch vụ:**
-   * **Attu Web GUI (Giao diện đồ họa Milvus):** Mở trình duyệt vào **`http://localhost:8000`**
-   * **MinIO Storage Console:** Mở `http://localhost:9001` (Tài khoản/Mật khẩu: `minioadmin` / `minioadmin`)
-   * **Milvus Port gRPC:** `localhost:19530`
-
-3. **Kết nối mã nguồn tới Docker Milvus:**
-   Chỉ cần truyền tham số `--db-path http://localhost:19530` vào bất kỳ lệnh nào:
-   ```bash
-   python search_milvus.py --db-path http://localhost:19530 --query "Luật an ninh mạng"
-   ```
-
-4. **Dừng cụm container khi hoàn thành:**
-   ```bash
-   docker compose down
-   ```
+### 2. `index_milvus.py` - Xây dựng Schema & Trích xuất Embeddings
+File này phụ trách pipeline ETL dữ liệu từ Hugging Face vào Milvus:
+* **Khởi tạo Collection Schema:**
+  * Khởi tạo trường khóa chính `id` (`VARCHAR`), trường vector đặc trưng `vector` (`FLOAT_VECTOR`, kích thước 384 chiều tương ứng với MiniLM-L12).
+  * Lưu trữ các trường nội dung: `title`, `text` (văn bản tiếng Việt) và đối với NQ-VN bổ sung thêm `og_title`, `og_text` (tiêu đề và nội dung gốc tiếng Anh).
+* **Cấu hình Vector Index:**
+  * Sử dụng metric `COSINE` (Cosine Similarity) để đo góc định hướng ngữ nghĩa giữa 2 vector.
+  * Chỉ mục đồ thị `AUTOINDEX` (Milvus tự động dựng đồ thị HNSW trên bộ nhớ để đạt độ phức tạp tìm kiếm $\mathcal{O}(\log N)$ thay vì $\mathcal{O}(N)$ brute-force).
+* **Pipeline Vector hóa theo lô (Batching):**
+  * Ghép `title` và `text` theo công thức: `{title}. {text[:1000]}` để tạo đầu vào ngữ cảnh tốt nhất cho mô hình embedding.
+  * Gọi `model.encode(..., normalize_embeddings=True)`: Tự động chuẩn hóa độ dài vector theo chuẩn L2 ($\|v\|_2 = 1$). Khi vector đã được chuẩn hóa L2, tích vô hướng Inner Product (IP) đồng nhất với Cosine Similarity, giúp Milvus tính toán cực nhanh.
 
 ---
 
-## 8. Bảng tra cứu nhanh lệnh (Cheat Sheet)
+### 3. `search_milvus.py` - Cơ chế tìm kiếm & Xếp hạng Cosine
+* Class `MultiDatasetSearcher`: Khi khởi tạo, tự động gọi `client.load_collection(name)` để nạp đồ thị index của cả 2 collection vào RAM/VRAM.
+* Hàm `search(...)`:
+  1. Trích xuất vector của câu hỏi người dùng qua `model.encode()`. Đo thời gian `embedding_ms`.
+  2. Truyền vector câu hỏi vào `client.search()` với tham số `limit=top_k`. Đo thời gian `milvus_search_ms`.
+  3. Duyệt danh sách các nút lân cận gần nhất (Nearest Neighbors) do Milvus trả về, trích xuất `id`, `score`, `title`, `text` để hiển thị.
+* Hỗ trợ chế độ tương tác qua dòng lệnh (`run_interactive_mode`) bắt các cú pháp đặc biệt (`:zalo`, `:nq`, `:both`, `:k`).
 
-| Nhu cầu tác vụ | Câu lệnh thực thi |
+---
+
+### 4. `benchmark_full.py` - Đánh giá Full Corpus & Xuất JSON
+Đây là script đo kiểm chuẩn mực toàn diện:
+* `ensure_full_corpus_indexed`: So sánh số bản ghi hiện có trong Milvus với số lượng tài liệu thực tế của corpus (61.425 với Zalo, 2.681.468 với NQ-VN). Nếu thiếu, tự động chạy tiếp từ vị trí `start_idx` và ghi vào Milvus theo lô 256 tài liệu.
+* `run_full_benchmark`:
+  1. Tải toàn bộ nhãn đáp án từ `qrels` (`query-id` $\rightarrow$ tập hợp các `corpus-id` liên quan).
+  2. Duyệt qua 100% câu hỏi trong tập `queries`. Với mỗi câu hỏi, đo lường chính xác bằng `time.perf_counter()` độ trễ Embedding và độ trễ Milvus Search.
+  3. Lấy Top-50 tài liệu Milvus trả về, đối chiếu xem có chứa tài liệu đáp án trong `qrels` hay không để tính **Recall@K, Hit Rate@K, MRR@K**.
+  4. Thực thi thêm một vòng lặp đo **Batched QPS** (gửi từng lô 32 câu hỏi đồng thời vào Milvus) để mô phỏng tải của hệ thống Production trong thực tế.
+  5. Đóng gói toàn bộ kết quả vào dictionary và tự động lưu ra file JSON (`benchmark_full_results.json`).
+
+---
+
+### 5. `benchmark_smart_pool.py` - Kỹ thuật Smart Pool Guarantee
+Giải pháp giải quyết bài toán thời gian đối với các bộ dữ liệu siêu lớn (như NQ-VN với 2.68 triệu văn bản):
+* **Vấn đề:** Nạp toàn bộ 2.68 triệu văn bản mất khoảng 35 - 45 phút trên GPU và tiêu tốn nhiều RAM.
+* **Nguyên lý giải quyết:** Trong 2.68 triệu văn bản, 1.900 câu hỏi trong tập test chỉ tham chiếu tới đúng **2.283 văn bản đáp án** duy nhất.
+* **Cơ chế:**
+  1. Sử dụng thư viện **PyArrow** quét chỉ mục bộ nhớ cực nhanh ($< 4$ giây) để tìm đúng vị trí của 2.283 tài liệu đáp án.
+  2. Lấy 2.283 tài liệu này kết hợp với 2.717 tài liệu gây nhiễu ngẫu nhiên (Distractors) để tạo thành một Pool chuẩn 5.000 tài liệu.
+  3. Nạp 5.000 tài liệu này vào Milvus (chỉ mất ~10 giây).
+  4. Đánh giá 100% câu hỏi (1.900 queries). Vì **100% tài liệu đáp án đều có mặt trong Pool**, các chỉ số đo lường Recall, Latency và QPS phản ánh đúng năng lực thuật toán mà không cần phải nạp hàng triệu tài liệu dư thừa.
+
+---
+
+### 6. `app.py` - Kiến trúc Web REST API & Giao diện
+* Được xây dựng trên nền tảng **Flask Web Framework**.
+* Khởi động và load sẵn mô hình embedding và 2 collection `zalo_legal`, `nq_vn`.
+* Định nghĩa route RESTful API: `/api/search` (phương thức `POST` nhận JSON payload gồm `query`, `dataset`, `top_k`).
+* Giao diện người dùng (`templates/index.html`): Sử dụng **Tailwind CSS**, thiết kế dạng Single Page App (SPA) bất đồng bộ (Fetch API). Khi người dùng gõ câu hỏi, frontend gửi request về backend, nhận kết quả và render các thẻ bài viết kèm điểm Cosine, thời gian phản hồi (ms) và nội dung song ngữ Anh - Việt.
+
+---
+
+## 8. Giải thích các chỉ số đánh giá Information Retrieval (IR)
+
+| Chỉ số | Tên đầy đủ | Ý nghĩa & Công thức toán học |
+| :--- | :--- | :--- |
+| **Recall@K** | *Tỷ lệ thu hồi trong Top-K* | $\text{Recall@K} = \frac{|\text{Retrieved@K} \cap \text{Relevant}|}{|\text{Relevant}|}$<br>Đo lường trong số tất cả các tài liệu đúng của câu hỏi, hệ thống đã tìm ra được bao nhiêu phần trăm trong top K kết quả. |
+| **Hit Rate@K** | *Tỷ lệ trúng Top-K* | $\text{Hit@K} = 1$ nếu có ít nhất 1 tài liệu đúng nằm trong top K kết quả; ngược lại bằng $0$. |
+| **MRR@K** | *Mean Reciprocal Rank* | $\text{MRR@K} = \frac{1}{|Q|} \sum_{i=1}^{|Q|} \frac{1}{\text{rank}_i}$<br>Đánh giá vị trí xếp hạng của tài liệu đúng đầu tiên. Nếu tài liệu đúng nằm ở vị trí số 1, điểm là $1.0$; nếu nằm ở vị trí số 2, điểm là $0.5$; vị trí số 5 là $0.2$. |
+| **Latency P50 / P95 / P99** | *Phân vị độ trễ (Mili-giây)* | **P50 (Median):** 50% số truy vấn phản hồi nhanh hơn mốc này.<br>**P95 / P99 (Tail Latency):** 95% hoặc 99% số truy vấn hoàn thành dưới mốc này (thước đo tiêu chuẩn cho cam kết SLA dịch vụ). |
+| **Throughput (QPS)** | *Queries Per Second* | $\text{QPS} = \frac{\text{Tổng số câu hỏi}}{\text{Tổng thời gian thực thi (giây)}}$<br>Đo khả năng chịu tải của hệ thống. Gồm Throughput đơn luồng (Single-Stream) và Throughput xử lý theo lô (Batched QPS). |
+
+---
+
+## 9. Bảng tra cứu nhanh lệnh (Cheat Sheet) & Xử lý lỗi
+
+### Bảng lệnh tra cứu nhanh:
+| Tác vụ cần thực hiện | Lệnh chạy |
 | :--- | :--- |
 | **Cài đặt thư viện** | `pip install -r requirements.txt` |
-| **Kiểm tra GPU CUDA** | `python -c "import torch; print(torch.cuda.is_available(), torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU')"` |
-| **Nạp dữ liệu Zalo (GPU)** | `python index_milvus.py --dataset zalo --limit-zalo 5000 --device cuda --fp16 --recreate` |
-| **Nạp dữ liệu NQ-VN (GPU)** | `python index_milvus.py --dataset nq --limit-nq 5000 --device cuda --fp16 --recreate` |
-| **Tìm kiếm 1 câu (CLI)** | `python search_milvus.py --query "Nội dung cần tìm" --dataset both` |
-| **Mở tìm kiếm tương tác** | `python search_milvus.py --interactive` |
-| **Khởi chạy Web UI** | `python app.py` $\rightarrow$ Mở `http://localhost:5000` |
-| **Benchmark NQ-VN siêu tốc** | `python benchmark_smart_pool.py --dataset nq --pool-size 5000 --device cuda --fp16 --recreate` |
-| **Benchmark Zalo siêu tốc** | `python benchmark_smart_pool.py --dataset zalo --pool-size 5000 --device cuda --fp16 --recreate` |
-| **Kiểm tra các collection trong DB** | `python -c "from pymilvus import MilvusClient; c=MilvusClient('milvus_data.db'); print([(x, c.get_collection_stats(x)) for x in c.list_collections()]); c.close()"` |
+| **Kiểm tra GPU CUDA** | `python -c "import torch; print(torch.cuda.is_available(), torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'None')"` |
+| **Benchmark 100% Full Corpus Zalo** | `python benchmark_full.py --dataset zalo --device cuda --fp16` |
+| **Benchmark 100% Full Corpus NQ-VN** | `python benchmark_full.py --dataset nq --device cuda --fp16` |
+| **Benchmark CẢ 2 BỘ (Tự động xuất JSON)**| `python benchmark_full.py --dataset both --device cuda --fp16` |
+| **Benchmark nhanh đối sánh 2 bộ** | `python benchmark_all.py --device cuda --fp16` |
+| **Tìm kiếm 1 câu hỏi bất kỳ** | `python search_milvus.py --query "Nội dung cần tìm" --dataset both` |
+| **Khởi động Giao diện Web** | `python app.py` $\rightarrow$ Mở `http://localhost:5000` |
+| **Xem số bản ghi trong Milvus** | `python -c "from pymilvus import MilvusClient; c=MilvusClient('milvus_data.db'); print([(x, c.get_collection_stats(x)) for x in c.list_collections()]); c.close()"` |
 
----
-
-## 9. Xử lý sự cố thường gặp (Troubleshooting)
-
-1. **Lỗi `Collection is in state released; call load() before search`:**
-   * *Nguyên nhân:* Collection chưa được nạp vào bộ nhớ trước khi truy vấn.
-   * *Khắc phục:* Toàn bộ script trong dự án đã tự động gọi `client.load_collection(name)`. Nếu gặp lỗi này, hãy chạy lại lệnh hoặc kiểm tra tên collection.
-2. **Lỗi `UnicodeEncodeError: 'charmap' codec can't encode...` trên Windows:**
-   * *Nguyên nhân:* Cửa sổ PowerShell hoặc Command Prompt mặc định dùng bảng mã cp1252.
-   * *Khắc phục:* Gõ lệnh sau trong PowerShell trước khi chạy:
-     ```powershell
-     $env:PYTHONIOENCODING = "utf-8"
-     [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
-     ```
-3. **GPU không nhận diện hoặc báo lỗi thiếu Kernel:**
-   * *Nguyên nhân:* Bản PyTorch CUDA không khớp với Driver GPU (đặc biệt card RTX 50-series cần CUDA 13.x).
-   * *Khắc phục:* Cài đặt đúng gói `pip install torch==2.14.1+cu132 --index-url https://download.pytorch.org/whl/cu132`. Ngoài ra, module `device_utils.py` sẽ tự động chuyển về chạy CPU an toàn nếu phát hiện lỗi driver.
+### Xử lý lỗi thường gặp (Troubleshooting):
+1. **Lỗi font chữ tiếng Việt trên PowerShell Windows:**
+   Chạy lệnh sau trước khi chạy script:
+   ```powershell
+   $env:PYTHONIOENCODING = "utf-8"
+   [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+   ```
+2. **Lỗi `CUDA error: no kernel image is available`:**
+   Card đồ họa thế hệ mới NVIDIA RTX 50-series (kiến trúc Blackwell `sm_120`) cần bản PyTorch tương thích CUDA 13.x. Cài đặt lại bằng lệnh:
+   ```bash
+   pip install torch==2.14.1+cu132 --index-url https://download.pytorch.org/whl/cu132
+   ```
+3. **Lỗi `Collection is in state released; call load() before search`:**
+   Collection chưa được nạp vào bộ nhớ trước khi gọi search. Toàn bộ code trong dự án đã có sẵn lệnh `client.load_collection(...)` tự động nạp.
